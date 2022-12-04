@@ -1,3 +1,5 @@
+// Copyright 2022-2022 RB-Lab (Roman Bekkiev). All rights reserved. MIT license.
+
 const shades = ["░", "▒", "▓", "█"];
 
 /**

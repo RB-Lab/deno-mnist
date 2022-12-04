@@ -1,3 +1,5 @@
+// Copyright 2022-2022 RB-Lab (Roman Bekkiev). All rights reserved. MIT license.
+
 import { gunzipFile } from "https://deno.land/x/compress@v0.4.4/gzip/mod.ts";
 
 /**
