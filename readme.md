@@ -7,7 +7,7 @@ Famous MNIST dataset ported to Deno land.
 Load MNIST dataset:
 
 ```ts
-import { loadMnist } from "https://deno.land/x/deno-mnist@v1.0.0/mod.ts";
+import { loadMnist } from "https://deno.land/x/mnist@v1.0.1/mod.ts";
 const mnist = await loadMnist();
 ```
 
@@ -17,10 +17,7 @@ part. Why is it so described on [Yann LeCun's original page][1]. So, yo probably
 those images first, for that there is a shuffle util:
 
 ```ts
-import {
-  loadMnist,
-  shuffle,
-} from "https://deno.land/x/deno-mnist@v1.0.0/mod.ts";
+import { loadMnist, shuffle } from "https://deno.land/x/mnist@v1.0.1/mod.ts";
 const mnist = await loadMnist();
 
 const trainData = shuffle(mnist.train);
