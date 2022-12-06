@@ -2,6 +2,7 @@
 
 import { gunzipFile } from "https://deno.land/x/compress@v0.4.4/gzip/mod.ts";
 import * as path from "https://deno.land/std@0.167.0/path/mod.ts";
+import __ from "https://deno.land/x/dirname@1.1.2/mod.ts";
 
 /**
  * Loads MNIST from data archives, unpacks it on the first run and caches it. Data is organized in
@@ -58,8 +59,8 @@ async function readLabels(filename: string) {
 }
 
 async function getContent(filename: string) {
-  const dirname = path.dirname(path.fromFileUrl(import.meta.url));
-  const unzippedFile = path.join(dirname, filename);
+  const { __dirname } = __(import.meta);
+  const unzippedFile = path.join(__dirname, filename);
   const zipFile = `${unzippedFile}.gz`;
   try {
     Deno.statSync(unzippedFile);
