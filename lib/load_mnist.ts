@@ -1,8 +1,22 @@
 // Copyright 2022-2022 RB-Lab (Roman Bekkiev). All rights reserved. MIT license.
 
-import { gunzipFile } from "https://deno.land/x/compress@v0.4.4/gzip/mod.ts";
-import * as path from "https://deno.land/std@0.167.0/path/mod.ts";
-import { dirname } from "https://raw.githubusercontent.com/rsp/deno-dirname/fc0febd78a90c3bed0ed15da234e5cc79fd31423/mod.ts";
+import {
+  readAll,
+  readerFromStreamReader,
+} from "https://deno.land/std@0.129.0/streams/conversion.ts";
+import { path } from "https://deno.land/x/compress@v0.4.4/deps.ts";
+import { gunzip } from "https://deno.land/x/compress@v0.4.4/gzip/mod.ts";
+export { readAll } from "https://deno.land/std@0.168.0/streams/read_all.ts";
+export { readerFromStreamReader } from "https://deno.land/std@0.168.0/streams/reader_from_stream_reader.ts";
+export * as path from "https://deno.land/std@0.168.0/path/mod.ts";
+
+export interface LoadMnistOptions {
+  /**
+   * Where to store unzipped mnist data.
+   * By default a folder .mnist_data with .gitignore [*] in it will be crated
+   */
+  cacheDir?: string;
+}
 
 /**
  * Loads MNIST from data archives, unpacks it on the first run and caches it. Data is organized in
@@ -10,12 +24,14 @@ import { dirname } from "https://raw.githubusercontent.com/rsp/deno-dirname/fc0f
  * (10,000). More on which data and how it is ordered on original Yann LeCun's page:
  * http://yann.lecun.com/exdb/mnist/
  */
-export async function loadMnist() {
+export async function loadMnist(options?: LoadMnistOptions) {
+  const cacheDir = options?.cacheDir || path.join(Deno.cwd(), ".mnist_data");
+  const hide = options?.cacheDir === undefined;
   const [trainImages, trainLabels, testImages, testLabels] = await Promise.all([
-    readImages("train-images-idx3-ubyte"),
-    readLabels("train-labels-idx1-ubyte"),
-    readImages("t10k-images-idx3-ubyte"),
-    readLabels("t10k-labels-idx1-ubyte"),
+    readImages(await getContent("train-images-idx3-ubyte", cacheDir, hide)),
+    readLabels(await getContent("train-labels-idx1-ubyte", cacheDir, hide)),
+    readImages(await getContent("t10k-images-idx3-ubyte", cacheDir, hide)),
+    readLabels(await getContent("t10k-labels-idx1-ubyte", cacheDir, hide)),
   ]);
   return {
     train: trainImages.images.map((image, i) => ({
@@ -29,8 +45,7 @@ export async function loadMnist() {
   };
 }
 
-async function readImages(filename: string) {
-  const content = await getContent(filename);
+function readImages(content: Uint8Array) {
   // read 4 bytes as a 32-bit integer
   const magicNumber = content.slice(0, 4).reduce((a, b) => a * 256 + b);
   const numImages = content.slice(4, 8).reduce((a, b) => a * 256 + b);
@@ -50,23 +65,37 @@ async function readImages(filename: string) {
   };
 }
 
-async function readLabels(filename: string) {
-  const content = await getContent(filename);
+function readLabels(content: Uint8Array) {
   const magicNumber = content.slice(0, 4).reduce((a, b) => a * 256 + b);
   const numLabels = content.slice(4, 8).reduce((a, b) => a * 256 + b);
   const labels = [...content.slice(8)];
   return { magicNumber, numLabels, labels: labels };
 }
 
-async function getContent(filename: string) {
-  const __dirname = dirname(import.meta);
-  const unzippedFile = path.join(__dirname, filename);
-  const zipFile = `${unzippedFile}.gz`;
+async function getContent(filename: string, cacheDir: string, hide: boolean) {
+  const unzippedFile = path.join(cacheDir, filename);
   try {
     Deno.statSync(unzippedFile);
   } catch (e) {
+    const zippedFile = new URL(`../data/${filename}.gz`, import.meta.url);
     if (!(e instanceof Deno.errors.NotFound)) throw e;
-    await gunzipFile(zipFile, unzippedFile);
+    const fetched = await fetch(zippedFile);
+    if (!fetched.body) throw new Error(`Unable to fetch ${filename}`);
+    const reader = fetched.body.getReader();
+    const zipped = await readAll(readerFromStreamReader(reader));
+    const unzipped = gunzip(zipped);
+    await Deno.mkdir(cacheDir, { recursive: true });
+    if (hide) {
+      // make git to ignore the folder content
+      const encoder = new TextEncoder();
+      await Deno.writeFile(
+        path.join(cacheDir, ".gitignore"),
+        encoder.encode("*\n"),
+        { create: true }
+      );
+    }
+    await Deno.writeFile(unzippedFile, unzipped, { create: true });
+    return unzipped;
   }
   return Deno.readFile(unzippedFile);
 }

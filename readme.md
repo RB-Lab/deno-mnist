@@ -4,10 +4,11 @@ Famous MNIST dataset ported to Deno land.
 
 ## Usage
 
-Load MNIST dataset:
+This package downloads the MNIST dataset, unpacks it and stores on users's machine. To load the
+dataset:
 
 ```ts
-import { loadMnist } from "https://deno.land/x/mnist@v1.0.1/mod.ts";
+import { loadMnist } from "https://deno.land/x/mnist@v1.1.0/mod.ts";
 const mnist = await loadMnist();
 ```
 
@@ -17,7 +18,7 @@ part. Why is it so described on [Yann LeCun's original page][1]. So, yo probably
 those images first, for that there is a shuffle util:
 
 ```ts
-import { loadMnist, shuffle } from "https://deno.land/x/mnist@v1.0.1/mod.ts";
+import { loadMnist, shuffle } from "https://deno.land/x/mnist@v1.1.0/mod.ts";
 const mnist = await loadMnist();
 
 const trainData = shuffle(mnist.train);
@@ -104,3 +105,16 @@ Data is packed in gzip files and will be unpacked on first run, so don't forget 
 `--allow-read` and `--allow-write` flags when you first run your program that uses the dataset.
 
 [1]: http://yann.lecun.com/exdb/mnist/
+
+### Available options
+
+There's only one option `cacheDir` which tells the loader where to store the unpacked dataset. By
+default it creates `.mnist_data` folder with `.gitignore` file in it, which ignores the folder
+content. You can change this behavior, e.g.:
+
+```ts
+import { loadMnist } from "https://deno.land/x/mnist@v1.1.0/mod.ts";
+const mnist = await loadMnist({ cacheDir: "/some/other/path" });
+```
+
+Note that in case you defined the folder yourself, the loader won't make `.gitignore` in it.
